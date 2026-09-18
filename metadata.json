@@ -1,0 +1,6 @@
+{
+  "name": "MS-DOS Mode 12h COM Converter",
+  "description": "Convert images to MS-DOS 640x480 4-bit 16-color VGA Mode 12h COM executables with retro dithering, palette quantization, and x86 assembly headers.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
