@@ -6,7 +6,8 @@
 import React, { useRef, useEffect, useState } from 'react';
 import { ViewMode, VgaColor } from '../types';
 import { VGA_WIDTH, VGA_HEIGHT } from '../utils/dithering';
-import { renderSinglePlaneToRgba, renderPlanesSplitToRgba } from '../utils/planarVga';
+import { renderSinglePlaneToRgba, renderPlanesSplitToRgba, renderProgressivePlanarSweepToRgba } from '../utils/planarVga';
+import { VgaSweepProgress } from '../utils/vgaTiming';
 import { Eye, ZoomIn, ZoomOut, Monitor, Maximize2, Sparkles, Layers } from 'lucide-react';
 
 interface CrtScreenProps {
@@ -16,6 +17,7 @@ interface CrtScreenProps {
   palette: VgaColor[];
   viewMode: ViewMode;
   onViewModeChange: (mode: ViewMode) => void;
+  sweepProgress?: VgaSweepProgress | null;
 }
 
 export const CrtScreen: React.FC<CrtScreenProps> = ({
@@ -25,6 +27,7 @@ export const CrtScreen: React.FC<CrtScreenProps> = ({
   palette,
   viewMode,
   onViewModeChange,
+  sweepProgress = null,
 }) => {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const containerRef = useRef<HTMLDivElement | null>(null);
@@ -51,7 +54,14 @@ export const CrtScreen: React.FC<CrtScreenProps> = ({
 
     let targetBuffer: Uint8ClampedArray;
 
-    if (viewMode === 'composite' || !planes) {
+    if (sweepProgress && planes) {
+      targetBuffer = renderProgressivePlanarSweepToRgba(
+        planes,
+        palette,
+        sweepProgress.planeIndex,
+        sweepProgress.scanline
+      );
+    } else if (viewMode === 'composite' || !planes) {
       targetBuffer = rgbaBuffer;
     } else if (viewMode === 'planes-split') {
       targetBuffer = renderPlanesSplitToRgba(planes, palette);
@@ -70,7 +80,7 @@ export const CrtScreen: React.FC<CrtScreenProps> = ({
     const imgData = ctx.createImageData(VGA_WIDTH, VGA_HEIGHT);
     imgData.data.set(targetBuffer);
     ctx.putImageData(imgData, 0, 0);
-  }, [rgbaBuffer, planes, viewMode, palette]);
+  }, [rgbaBuffer, planes, viewMode, palette, sweepProgress]);
 
   // Handle pixel hover inspector
   const handleMouseMove = (e: React.MouseEvent<HTMLCanvasElement>) => {
@@ -116,8 +126,22 @@ export const CrtScreen: React.FC<CrtScreenProps> = ({
       {/* Top Monitor Bar */}
       <div className="flex flex-wrap items-center justify-between gap-3 bg-[#11161f] border border-[#232f42] px-4 py-2.5 rounded-xl text-xs text-slate-300">
         <div className="flex items-center gap-2">
-          <span className="flex h-2.5 w-2.5 rounded-full bg-emerald-400 animate-pulse" />
-          <span className="font-mono text-emerald-400 font-semibold tracking-wide">VGA 640x480 @ 60Hz</span>
+          <span
+            className={`flex h-2.5 w-2.5 rounded-full animate-pulse ${
+              sweepProgress ? 'bg-amber-400' : 'bg-emerald-400'
+            }`}
+          />
+          <span
+            className={`font-mono font-semibold tracking-wide ${
+              sweepProgress ? 'text-amber-300' : 'text-emerald-400'
+            }`}
+          >
+            {sweepProgress
+              ? `WRITING P${sweepProgress.planeIndex} • LINE ${(sweepProgress.scanline + 1)
+                  .toString()
+                  .padStart(3, '0')}/480`
+              : 'VGA 640x480 @ 60Hz'}
+          </span>
           <span className="text-slate-500">•</span>
           <span className="font-mono text-slate-400">Mode 12h (16-Color Planar)</span>
         </div>

@@ -174,3 +174,78 @@ export function renderPlanesSplitToRgba(
 
   return buffer;
 }
+
+/**
+ * Reconstructs the 640x480 composite framebuffer mid-transfer during a simulated
+ * plane-by-plane write to 0xA000:0000.
+ * - Planes < activePlane are fully populated
+ * - activePlane is populated up to activeScanline
+ * - Planes > activePlane are still empty (0)
+ */
+export function renderProgressivePlanarSweepToRgba(
+  planes: [Uint8Array, Uint8Array, Uint8Array, Uint8Array],
+  palette: VgaColor[],
+  activePlane: number,
+  activeScanline: number
+): Uint8ClampedArray {
+  const buffer = new Uint8ClampedArray(VGA_WIDTH * VGA_HEIGHT * 4);
+
+  for (let y = 0; y < VGA_HEIGHT; y++) {
+    const rowByteBase = y * BYTES_PER_ROW;
+    const isCursorLine = y === activeScanline;
+
+    // Determine which planes are active at this scanline
+    const p0Active = activePlane > 0 || (activePlane === 0 && y <= activeScanline);
+    const p1Active = activePlane > 1 || (activePlane === 1 && y <= activeScanline);
+    const p2Active = activePlane > 2 || (activePlane === 2 && y <= activeScanline);
+    const p3Active = activePlane > 3 || (activePlane === 3 && y <= activeScanline);
+
+    const p0 = planes[0];
+    const p1 = planes[1];
+    const p2 = planes[2];
+    const p3 = planes[3];
+
+    for (let byteCol = 0; byteCol < BYTES_PER_ROW; byteCol++) {
+      const byteIdx = rowByteBase + byteCol;
+      const b0 = p0Active ? p0[byteIdx] : 0;
+      const b1 = p1Active ? p1[byteIdx] : 0;
+      const b2 = p2Active ? p2[byteIdx] : 0;
+      const b3 = p3Active ? p3[byteIdx] : 0;
+
+      const basePixel = (y * VGA_WIDTH + byteCol * 8) * 4;
+
+      for (let bit = 0; bit < 8; bit++) {
+        const mask = 1 << (7 - bit);
+        const colorIdx =
+          (b0 & mask ? 1 : 0) |
+          (b1 & mask ? 2 : 0) |
+          (b2 & mask ? 4 : 0) |
+          (b3 & mask ? 8 : 0);
+
+        const col = palette[colorIdx];
+        const outIdx = basePixel + bit * 4;
+
+        if (isCursorLine) {
+          // Subtle phosphor write beam highlight on the active scanline
+          buffer[outIdx] = Math.min(255, (col ? col.r : 0) + 55);
+          buffer[outIdx + 1] = Math.min(255, (col ? col.g : 0) + 75);
+          buffer[outIdx + 2] = Math.min(255, (col ? col.b : 0) + 95);
+          buffer[outIdx + 3] = 255;
+        } else if (col) {
+          buffer[outIdx] = col.r;
+          buffer[outIdx + 1] = col.g;
+          buffer[outIdx + 2] = col.b;
+          buffer[outIdx + 3] = 255;
+        } else {
+          buffer[outIdx] = 0;
+          buffer[outIdx + 1] = 0;
+          buffer[outIdx + 2] = 0;
+          buffer[outIdx + 3] = 255;
+        }
+      }
+    }
+  }
+
+  return buffer;
+}
+

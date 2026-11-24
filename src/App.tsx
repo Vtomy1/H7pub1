@@ -27,6 +27,8 @@ import { CrtScreen } from './components/CrtScreen';
 import { ControlPanel } from './components/ControlPanel';
 import { HeaderExporter } from './components/HeaderExporter';
 import { PlaneInspector } from './components/PlaneInspector';
+import { VgaTimingVisualizer } from './components/VgaTimingVisualizer';
+import { VgaSweepProgress } from './utils/vgaTiming';
 import { Terminal, Sparkles, Cpu, HardDrive, Download, Upload } from 'lucide-react';
 
 export default function App() {
@@ -51,6 +53,7 @@ export default function App() {
   const [processedData, setProcessedData] = useState<ProcessedVgaData | null>(null);
   const [isProcessing, setIsProcessing] = useState<boolean>(false);
   const [customQuantizedPalette, setCustomQuantizedPalette] = useState<VgaColor[]>([]);
+  const [sweepProgress, setSweepProgress] = useState<VgaSweepProgress | null>(null);
 
   // Scaling helper: render input image to 640x480 ImageData based on AspectRatioMode
   const renderSourceTo640x480 = useCallback(
@@ -319,6 +322,14 @@ export default function App() {
               palette={processedData?.palette || []}
               viewMode={viewMode}
               onViewModeChange={setViewMode}
+              sweepProgress={sweepProgress}
+            />
+
+            {/* VGA Timing & Latency Visualizer */}
+            <VgaTimingVisualizer
+              planes={processedData?.planes || null}
+              isCustomPalette={processedData?.isCustomPalette || false}
+              onSweepProgressChange={setSweepProgress}
             />
 
             {/* VGA 4-Bit Plane Architecture Inspector */}
