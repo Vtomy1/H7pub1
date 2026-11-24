@@ -28,6 +28,7 @@ import { ControlPanel } from './components/ControlPanel';
 import { HeaderExporter } from './components/HeaderExporter';
 import { PlaneInspector } from './components/PlaneInspector';
 import { VgaTimingVisualizer } from './components/VgaTimingVisualizer';
+import { VgaMemoryMap } from './components/VgaMemoryMap';
 import { VgaSweepProgress } from './utils/vgaTiming';
 import { Terminal, Sparkles, Cpu, HardDrive, Download, Upload } from 'lucide-react';
 
@@ -359,6 +360,16 @@ export default function App() {
               onImageUpload={handleImageUpload}
             />
           </div>
+        </div>
+
+        {/* Full-Width Section: VGA 256KB VRAM & 0xA000 Memory Map */}
+        <div className="w-full">
+          <VgaMemoryMap
+            planes={processedData?.planes || null}
+            activeViewMode={viewMode}
+            onSelectPlaneView={setViewMode}
+            sweepProgress={sweepProgress}
+          />
         </div>
 
         {/* Bottom Full-Width Section: MS-DOS .COM Header & Code Generator */}
