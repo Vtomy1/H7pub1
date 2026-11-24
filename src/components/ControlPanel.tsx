@@ -22,6 +22,7 @@ import {
   Info,
   Maximize,
   Ratio,
+  Edit3,
 } from 'lucide-react';
 
 interface ControlPanelProps {
@@ -39,6 +40,7 @@ interface ControlPanelProps {
   selectedPresetId: string;
   onSelectPreset: (preset: SamplePreset) => void;
   onImageUpload: (file: File) => void;
+  onOpenPaletteEditor: (initialColorIndex?: number) => void;
 }
 
 export const ControlPanel: React.FC<ControlPanelProps> = ({
@@ -56,6 +58,7 @@ export const ControlPanel: React.FC<ControlPanelProps> = ({
   selectedPresetId,
   onSelectPreset,
   onImageUpload,
+  onOpenPaletteEditor,
 }) => {
   const fileInputRef = React.useRef<HTMLInputElement | null>(null);
 
@@ -196,18 +199,26 @@ export const ControlPanel: React.FC<ControlPanelProps> = ({
 
       {/* 3. VGA 16-Color Palette Selection & DAC Swatches */}
       <div className="bg-[#111620] border border-[#1e293b] rounded-xl p-4 flex flex-col gap-4">
-        <div className="flex items-center justify-between">
+        <div className="flex items-center justify-between gap-2">
           <div className="flex items-center gap-2 text-sm font-semibold text-slate-200">
             <Palette className="w-4 h-4 text-amber-400" />
             <span>VGA 16-Color Palette (4-Bit)</span>
           </div>
-          <span className="text-xs text-slate-400">16 colors per frame</span>
+          <button
+            id="open-custom-palette-editor-btn"
+            type="button"
+            onClick={() => onOpenPaletteEditor(0)}
+            className="px-2.5 py-1 rounded-lg bg-amber-500/15 hover:bg-amber-500/25 border border-amber-500/40 text-amber-300 text-xs font-medium flex items-center gap-1.5 transition-colors cursor-pointer"
+          >
+            <Edit3 className="w-3.5 h-3.5" />
+            <span>Edit 16 DAC Colors</span>
+          </button>
         </div>
 
         <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
           {[
             { id: 'vga-default', name: 'Standard IBM VGA', desc: 'Hardware default 16 IRGB colors' },
-            { id: 'custom-quantized', name: 'Custom Quantized', desc: 'Median-Cut DAC programmed (photo quality!)' },
+            { id: 'custom-quantized', name: 'Custom Quantized', desc: 'Median-Cut / Custom DAC programmed' },
             { id: 'grayscale-16', name: '16 Grayscale', desc: 'Even 16-step luminance shades' },
             { id: 'green-phosphor', name: 'P31 Green CRT', desc: 'Monochrome IBM 5151 phosphor' },
             { id: 'amber-crt', name: 'P134 Amber CRT', desc: 'Classic amber monochrome display' },
@@ -232,22 +243,27 @@ export const ControlPanel: React.FC<ControlPanelProps> = ({
           })}
         </div>
 
-        {/* 16 Palette Swatches Display */}
+        {/* 16 Palette Swatches Display (Clickable to edit register) */}
         <div className="flex flex-col gap-1.5 pt-1">
-          <span className="text-xs text-slate-400 font-mono">Active 16-Color DAC Table (0..15):</span>
+          <div className="flex items-center justify-between text-xs text-slate-400 font-mono">
+            <span>Active 16-Color DAC Table (0..15):</span>
+            <span className="text-[10px] text-amber-300/80">Click any swatch to edit</span>
+          </div>
           <div className="grid grid-cols-8 sm:grid-cols-16 gap-1 p-2 rounded-lg bg-[#0a0d13] border border-[#1b2330]">
             {palette.map((c, idx) => (
-              <div
+              <button
                 key={idx}
-                className="group relative flex flex-col items-center justify-center"
-                title={`#${idx}: ${c.name} | RGB(${c.r}, ${c.g}, ${c.b}) | DAC 6b: (${c.dacR}, ${c.dacG}, ${c.dacB})`}
+                type="button"
+                onClick={() => onOpenPaletteEditor(idx)}
+                className="group relative flex flex-col items-center justify-center cursor-pointer"
+                title={`Click to edit #${idx}: ${c.name} | RGB(${c.r}, ${c.g}, ${c.b}) | DAC 6b: (${c.dacR}, ${c.dacG}, ${c.dacB})`}
               >
                 <div
-                  className="w-full aspect-square rounded border border-white/20 shadow-sm transition-transform group-hover:scale-110"
+                  className="w-full aspect-square rounded border border-white/20 shadow-sm transition-transform group-hover:scale-115 group-hover:border-amber-400"
                   style={{ backgroundColor: `rgb(${c.r}, ${c.g}, ${c.b})` }}
                 />
-                <span className="text-[9px] font-mono text-slate-400 mt-0.5">{idx}</span>
-              </div>
+                <span className="text-[9px] font-mono text-slate-400 group-hover:text-amber-300 mt-0.5">{idx}</span>
+              </button>
             ))}
           </div>
         </div>

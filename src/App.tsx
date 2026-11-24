@@ -30,6 +30,7 @@ import { PlaneInspector } from './components/PlaneInspector';
 import { VgaTimingVisualizer } from './components/VgaTimingVisualizer';
 import { VgaMemoryMap } from './components/VgaMemoryMap';
 import { AssemblyPreview } from './components/AssemblyPreview';
+import { CustomPaletteModal } from './components/CustomPaletteModal';
 import { VgaSweepProgress } from './utils/vgaTiming';
 import { Terminal, Sparkles, Cpu, HardDrive, Download, Upload } from 'lucide-react';
 
@@ -56,6 +57,49 @@ export default function App() {
   const [isProcessing, setIsProcessing] = useState<boolean>(false);
   const [customQuantizedPalette, setCustomQuantizedPalette] = useState<VgaColor[]>([]);
   const [sweepProgress, setSweepProgress] = useState<VgaSweepProgress | null>(null);
+  const [isPaletteEditorOpen, setIsPaletteEditorOpen] = useState<boolean>(false);
+  const [paletteEditorSlot, setPaletteEditorSlot] = useState<number>(0);
+  const [paletteTypeBeforeEdit, setPaletteTypeBeforeEdit] = useState<PaletteType>('vga-default');
+
+  const handleOpenPaletteEditor = useCallback(
+    (initialColorIndex: number = 0) => {
+      setPaletteTypeBeforeEdit(paletteType);
+      const currentActive = getPalette(paletteType, customQuantizedPalette);
+      if (paletteType !== 'custom-quantized') {
+        setCustomQuantizedPalette(currentActive.map((c) => ({ ...c })));
+      }
+      setPaletteEditorSlot(initialColorIndex);
+      setIsPaletteEditorOpen(true);
+    },
+    [paletteType, customQuantizedPalette]
+  );
+
+  const handleCustomPaletteChange = useCallback(
+    (updatedPalette: VgaColor[]) => {
+      setCustomQuantizedPalette(updatedPalette);
+      if (paletteType !== 'custom-quantized') {
+        setPaletteType('custom-quantized');
+      }
+    },
+    [paletteType]
+  );
+
+  const handleResetToMedianCut = useCallback(() => {
+    if (!sourceImageData) return;
+    const medianCut = generateQuantizedPalette(sourceImageData);
+    setCustomQuantizedPalette(medianCut);
+    setPaletteType('custom-quantized');
+  }, [sourceImageData]);
+
+  const handleCancelRestorePalette = useCallback(
+    (originalPalette: VgaColor[], originalTypeWasCustom: boolean) => {
+      setPaletteType(paletteTypeBeforeEdit);
+      if (originalTypeWasCustom) {
+        setCustomQuantizedPalette(originalPalette);
+      }
+    },
+    [paletteTypeBeforeEdit]
+  );
 
   // Scaling helper: render input image to 640x480 ImageData based on AspectRatioMode
   const renderSourceTo640x480 = useCallback(
@@ -359,6 +403,7 @@ export default function App() {
               selectedPresetId={selectedPresetId}
               onSelectPreset={handleSelectPreset}
               onImageUpload={handleImageUpload}
+              onOpenPaletteEditor={handleOpenPaletteEditor}
             />
           </div>
         </div>
@@ -383,6 +428,19 @@ export default function App() {
           <AssemblyPreview data={processedData} />
         </div>
       </main>
+
+      {/* Custom VGA DAC Palette Editor Modal */}
+      <CustomPaletteModal
+        isOpen={isPaletteEditorOpen}
+        onClose={() => setIsPaletteEditorOpen(false)}
+        activePalette={processedData?.palette || getPalette(paletteType, customQuantizedPalette)}
+        previewRgbaBuffer={processedData?.rgbaBuffer || null}
+        initialColorIndex={paletteEditorSlot}
+        onPaletteChange={handleCustomPaletteChange}
+        onResetToMedianCut={handleResetToMedianCut}
+        onCancelRestore={handleCancelRestorePalette}
+        wasCustomPaletteOnOpen={paletteTypeBeforeEdit === 'custom-quantized'}
+      />
 
       {/* Footer */}
       <footer className="border-t border-[#18202d] bg-[#090d14] px-4 py-3 text-xs font-mono text-slate-500 text-center">
