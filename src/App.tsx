@@ -29,6 +29,7 @@ import { HeaderExporter } from './components/HeaderExporter';
 import { PlaneInspector } from './components/PlaneInspector';
 import { VgaTimingVisualizer } from './components/VgaTimingVisualizer';
 import { VgaMemoryMap } from './components/VgaMemoryMap';
+import { AssemblyPreview } from './components/AssemblyPreview';
 import { VgaSweepProgress } from './utils/vgaTiming';
 import { Terminal, Sparkles, Cpu, HardDrive, Download, Upload } from 'lucide-react';
 
@@ -375,6 +376,11 @@ export default function App() {
         {/* Bottom Full-Width Section: MS-DOS .COM Header & Code Generator */}
         <div className="w-full mt-2">
           <HeaderExporter data={processedData} />
+        </div>
+
+        {/* Assembly Preview: Live COM Binary Disassembler & BIOS/Stack Inspector */}
+        <div className="w-full">
+          <AssemblyPreview data={processedData} />
         </div>
       </main>
 
